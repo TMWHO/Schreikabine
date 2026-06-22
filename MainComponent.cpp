@@ -6,7 +6,6 @@ MainComponent::MainComponent()
 	setAudioChannels(2, 0);  // we want a couple of input channels but no outputs
 	setSize(1280, 1024);
 
-
 	addAndMakeVisible(&ScopeComponent);
 	addAndMakeVisible(&SpecComponent);
 	addAndMakeVisible(&uiComponent);
@@ -55,7 +54,13 @@ void MainComponent::paint(juce::Graphics& g)
 void MainComponent::resized()
 {
 
-	ScopeComponent.setBounds(getLocalBounds());
-	SpecComponent.setBounds(getLocalBounds());
-	uiComponent.setBounds(getLocalBounds());
+	juce::Rectangle<int> boundsScope(0, 0, getWidth() / 2, getHeight() / 2);
+	juce::Rectangle<int> boundsSpec(0, getHeight() / 2, getWidth() / 2, getHeight() / 2);
+	juce::Rectangle<int> boundsUi(getWidth() / 2, 0, getWidth() / 2, getHeight() / 2);
+
+
+
+	ScopeComponent.setBounds(boundsScope);
+	SpecComponent.setBounds(boundsSpec);
+	uiComponent.setBounds(boundsUi);
 }

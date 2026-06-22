@@ -21,7 +21,7 @@ public:
 		juce::zeromem(fftData, sizeof(fftData));
 		juce::zeromem(scopeData, sizeof(scopeData));
 
-
+		setOpaque(true);
 		startTimerHz(60);
 	}
 

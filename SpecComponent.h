@@ -19,9 +19,9 @@ public:
 	{
 
 
-		setOpaque(true);
+		setSize(640, 512);
+		//setOpaque(true);
 		startTimerHz(60);
-		//setSize(700, 500);
 	}
 
 	void pushNextSampleIntoFifo(float sample) noexcept
@@ -49,16 +49,16 @@ public:
 		g.drawImage(spectrogramImage, getLocalBounds().toFloat());
 	}
 
-private:
 
 	static constexpr auto fftOrder = 10;
 	static constexpr auto fftSize = 1 << fftOrder;
+private:
 
 
 	juce::dsp::FFT forwardFFT;
 	juce::Image spectrogramImage;
-	std::array<float, fftSize> fifo;
-	std::array<float, fftSize * 2> fftData;
+	std::array<float, fftSize> fifo{};
+	std::array<float, fftSize * 2> fftData{};
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
 
