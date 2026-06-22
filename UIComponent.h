@@ -1,9 +1,9 @@
 /*
   ==============================================================================
 
-    UIComponent.h
-    Created: 19 Jun 2026 10:20:31am
-    Author:  SchoeDam
+	UIComponent.h
+	Created: 19 Jun 2026 10:20:31am
+	Author:  SchoeDam
 
   ==============================================================================
 */
@@ -18,54 +18,48 @@ public:
 	UIComponent(AudioState& state) :audioState(state)
 	{
 
-		levelSlider.reset(new juce::Slider("level"));
-		addAndMakeVisible(levelSlider.get());
-		levelSlider->setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
-		levelSlider->setRange(0.0f, 1.0f);
-		levelSlider->setBounds(0, labelHeight, elementWidth, elementHeight);
-		levelSlider->setValue(0.1f);
-		levelSlider->setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxBelow, false, 100, 20);
-		levelSlider->onValueChange = [this] {audioState.level.store(static_cast<float>(levelSlider->getValue()));};
+		sld_dbMin.reset(new juce::Slider("slider_dbMin"));
+		addAndMakeVisible(sld_dbMin.get());
+		sld_dbMin->setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
+		sld_dbMin->setRange(-100, 0, 1);
+		sld_dbMin->setTextValueSuffix(" dB");
+		sld_dbMin->setValue(-100);
+		sld_dbMin->setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxBelow, false, elementWidth, labelHeight);
+		sld_dbMin->onValueChange = [this] {audioState.dbMin.store(static_cast<float>(sld_dbMin->getValue()));};
+		sld_dbMin->setBounds(0, labelHeight, elementWidth, elementHeight);
+		sld_dbMin->setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lime);
 
-		addAndMakeVisible(&lblFreq);
-		lblFreq.setBounds(0, 0, elementWidth, labelHeight);
-		lblFreq.setText("Freq", juce::NotificationType::dontSendNotification);
-		lblFreq.setJustificationType(juce::Justification::centred);
+		lbl_dbMin.reset(new juce::Label("label_dbMin"));
+		addAndMakeVisible(lbl_dbMin.get());
+		lbl_dbMin->setText("dbMin", juce::NotificationType::dontSendNotification);
+		lbl_dbMin->setColour(juce::Label::outlineColourId, juce::Colours::lime);
+		lbl_dbMin->setJustificationType(juce::Justification::centred);
+		lbl_dbMin->attachToComponent(sld_dbMin.get(), false);
 
 
 
-		freqSlider.reset(new juce::Slider("freq"));
-		addAndMakeVisible(freqSlider.get());
-		freqSlider->setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
-		freqSlider->setRange(20.0f, 20000.0f);
-		freqSlider->setBounds(100, labelHeight, elementWidth, elementHeight);
-		freqSlider->setValue(500.0f);
-		freqSlider->setSkewFactorFromMidPoint(500.0f);
-		freqSlider->setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxBelow, false, 100, 20);
-		freqSlider->setTextValueSuffix(" Hz");
-		freqSlider->onValueChange = [this] {audioState.freq.store(static_cast<double>(freqSlider->getValue()));};
+
 
 	}
 
 	~UIComponent()
 	{
-		levelSlider = nullptr;
-		freqSlider = nullptr;
+		sld_dbMin, lbl_dbMin = nullptr;
+
 	}
 
 	void resize() {}
 
-	std::unique_ptr<juce::Slider> levelSlider;
-	std::unique_ptr<juce::Slider> freqSlider;
+	std::unique_ptr<juce::Slider> sld_dbMin;
+	std::unique_ptr<juce::Label> lbl_dbMin;
 
-	juce::Label lblFreq;
 
 private:
 
-	int labelHeight = 25;
+	int labelHeight = 20;
 
-	int elementWidth = 100;
-	int elementHeight = 500;
+	int elementWidth = 60;
+	int elementHeight = 60;
 
 	AudioState& audioState;
 };

@@ -11,11 +11,12 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "AudioState.h"
 
 class ScopeComponent : public juce::Component, private juce::Timer
 {
 public:
-	ScopeComponent() : forwardFFT(fftOrder), window(fftSize, juce::dsp::WindowingFunction<float>::hann)
+	ScopeComponent(AudioState& state) : audioState(state), forwardFFT(fftOrder), window(fftSize, juce::dsp::WindowingFunction<float>::hann)
 	{
 		juce::zeromem(fifo, sizeof(fifo));
 		juce::zeromem(fftData, sizeof(fftData));
@@ -73,12 +74,17 @@ public:
 		}
 
 		g.strokePath(spectrumPath, juce::PathStrokeType(2.0f));
+
+		//draw frequ achse
+
+
 	}
 
 private:
-	static constexpr int fftOrder = 11;
+
+	static constexpr int fftOrder = 11;		//def 11
 	static constexpr int fftSize = 1 << fftOrder;
-	static constexpr int scopeSize = 512;
+	static constexpr int scopeSize = 512;	//def 512
 
 	juce::dsp::FFT forwardFFT;
 	juce::dsp::WindowingFunction<float> window;
@@ -90,15 +96,11 @@ private:
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
 
-	void timerCallback() override
-	{
-		if (nextFFTBlockReady)
-		{
-			drawNextFrameOfSpectrum();
-			nextFFTBlockReady = false;
-			repaint();
-		}
-	}
+	AudioState& audioState;
+
+
+	////////////////////////////////////////////////////////
+
 
 	void drawNextFrameOfSpectrum()
 	{
@@ -106,7 +108,8 @@ private:
 
 		forwardFFT.performFrequencyOnlyForwardTransform(fftData);
 
-		auto mindB = -100.0f;
+
+		auto mindB = (float)audioState.dbMin.load();
 		auto maxdB = 0.0f;
 
 		for (int i = 0; i < scopeSize; ++i)
@@ -131,6 +134,16 @@ private:
 				1.0f);
 
 			scopeData[i] = level;
+		}
+	}
+
+	void timerCallback() override
+	{
+		if (nextFFTBlockReady)
+		{
+			drawNextFrameOfSpectrum();
+			nextFFTBlockReady = false;
+			repaint();
 		}
 	}
 

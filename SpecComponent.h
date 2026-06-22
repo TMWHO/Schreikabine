@@ -11,13 +11,14 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "AudioState.h"
 
 class SpecComponent : public juce::Component, private juce::Timer
 {
 public:
-	SpecComponent() : forwardFFT(fftOrder), spectrogramImage(juce::Image::RGB, 512, 512, true)
+	SpecComponent(AudioState& state) : audioState(state), forwardFFT(fftOrder), spectrogramImage(juce::Image::RGB, 512, 512, true)
 	{
-
+			
 
 		setSize(640, 512);
 		//setOpaque(true);
@@ -50,7 +51,7 @@ public:
 	}
 
 
-	static constexpr auto fftOrder = 10;
+	static constexpr auto fftOrder = 10;		//def 10
 	static constexpr auto fftSize = 1 << fftOrder;
 private:
 
@@ -61,6 +62,8 @@ private:
 	std::array<float, fftSize * 2> fftData{};
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
+
+	AudioState& audioState;
 
 
 

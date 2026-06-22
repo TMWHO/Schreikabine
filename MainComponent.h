@@ -30,10 +30,12 @@ public:
 private:
 
 	AudioState audioState;
+
 	UIComponent uiComponent{ audioState };
 
-	ScopeComponent ScopeComponent;
-	SpecComponent SpecComponent;
+	ScopeComponent ScopeComponent{ audioState };
+
+	SpecComponent SpecComponent{ audioState };
 
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
