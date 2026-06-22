@@ -77,6 +77,38 @@ public:
 
 		//draw frequ achse
 
+		g.setColour(juce::Colours::grey);
+
+		std::array<float, 10> freqs =
+		{
+			20.0f, 50.0f, 100.0f, 200.0f, 500.0f,
+			1000.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f
+		};
+
+
+		for (auto freq : freqs)
+		{
+			auto x = frequencyToX(freq, bounds.getWidth());
+
+			// Tick
+			g.drawVerticalLine((int)x, bounds.getBottom() - 10.0f, bounds.getBottom());
+
+			// Beschriftung
+			juce::String label;
+
+			if (freq >= 1000.0f)
+				label = juce::String(freq / 1000.0f, 0) + "k";
+			else
+				label = juce::String((int)freq);
+
+			g.drawText(label,
+				(int)x - 20,
+				(int)bounds.getBottom() - 20,
+				40,
+				15,
+				juce::Justification::centred);
+		}
+
 
 	}
 
@@ -101,6 +133,16 @@ private:
 
 	////////////////////////////////////////////////////////
 
+	float frequencyToX(float freq, float width)
+	{
+		constexpr float minFreq = 20.0f;
+		constexpr float maxFreq = 20000.0f;
+
+		auto norm = (std::log10(freq) - std::log10(minFreq)) / (std::log10(maxFreq) - std::log10(minFreq));
+
+		return norm * width;
+	}
+
 
 	void drawNextFrameOfSpectrum()
 	{
@@ -112,15 +154,20 @@ private:
 		auto mindB = (float)audioState.dbMin.load();
 		auto maxdB = 0.0f;
 
+		constexpr float minFreq = 20.0f;
+		float nyquist = (float)audioState.currentSampleRate.load() * 0.5f;			//current sample rate
+
 		for (int i = 0; i < scopeSize; ++i)
 		{
-			auto skewedProportionX =
-				1.0f - std::exp(std::log(1.0f - (float)i / (float)scopeSize) * 0.2f);
+
+			auto proportion = (float)i / (float)(scopeSize - 1);
+
+			auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
 
 			auto fftDataIndex = juce::jlimit(
 				0,
 				fftSize / 2,
-				(int)(skewedProportionX * fftSize * 0.5f));
+				(int)(frequency / nyquist * (fftSize / 2)));
 
 			auto level = juce::jmap(
 				juce::jlimit(

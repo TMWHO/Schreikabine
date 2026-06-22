@@ -19,7 +19,7 @@ MainComponent::~MainComponent()
 //==============================================================================
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
-
+	audioState.currentSampleRate.store(sampleRate);
 }
 
 void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill)
