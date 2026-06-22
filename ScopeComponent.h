@@ -21,6 +21,7 @@ public:
 		juce::zeromem(fifo, sizeof(fifo));
 		juce::zeromem(fftData, sizeof(fftData));
 		juce::zeromem(scopeData, sizeof(scopeData));
+		juce::zeromem(fftSmoothed, sizeof(fftSmoothed));
 
 		setOpaque(true);
 		startTimerHz(60);
@@ -119,10 +120,8 @@ public:
 			// Beschriftung
 			juce::String label;
 
-			if (freq >= 1000.0f)
-				label = juce::String(freq / 1000.0f, 0) + "k";
-			else
-				label = juce::String((int)freq);
+			if (freq >= 1000.0f)	label = juce::String(freq / 1000.0f, 0) + "k";
+			else					label = juce::String((int)freq);
 
 			g.drawText(label,
 				(int)x - 20,
@@ -146,6 +145,9 @@ private:
 	float fifo[fftSize];
 	float fftData[2 * fftSize];
 	float scopeData[scopeSize];
+
+	float fftSmoothed[fftSize / 2];
+
 
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
@@ -172,7 +174,6 @@ private:
 
 		forwardFFT.performFrequencyOnlyForwardTransform(fftData);
 
-
 		auto mindB = (float)audioState.dbMin.load();
 		auto maxdB = 0.0f;
 
@@ -186,38 +187,17 @@ private:
 
 			auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
 
-			//auto fftDataIndex = juce::jlimit(
-			//	0,
-			//	fftSize / 2,
-			//	(int)(frequency / nyquist * (fftSize / 2)));
+			float fftIndex = frequency / nyquist * (fftSize / 2);
 
-			float fftIndex =
-				frequency / nyquist * (fftSize / 2);
+			auto index0 = juce::jlimit(0, fftSize / 2, (int)std::floor(fftIndex));
 
-			auto index0 = juce::jlimit(
-				0,
-				fftSize / 2,
-				(int)std::floor(fftIndex));
-
-			auto index1 = juce::jlimit(
-				0,
-				fftSize / 2,
-				index0 + 1);
+			auto index1 = juce::jlimit(0, fftSize / 2, index0 + 1);
 
 			auto frac = fftIndex - (float)index0;
 
-			float magnitude = fftData[index0];
-			float db = juce::Decibels::gainToDecibels(magnitude + 1e-6f);
-			magnitude = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
+			float magnitude = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
 
-
-			//smoothing
-			float fftSmoothed[fftSize / 2];
-			juce::zeromem(fftSmoothed, sizeof(fftSmoothed));
-
-			float fftValue =
-				fftData[index0]
-				+ frac * (fftData[index1] - fftData[index0]);
+			float fftValue = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
 
 			fftSmoothed[i] = fftSmoothed[i] * 0.8f + fftValue * 0.2f;
 
