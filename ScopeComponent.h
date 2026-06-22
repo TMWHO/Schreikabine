@@ -24,7 +24,7 @@ public:
 		juce::zeromem(fftSmoothed, sizeof(fftSmoothed));
 
 		setOpaque(true);
-		startTimerHz(60);
+		startTimerHz(120);
 	}
 
 	void pushNextSampleIntoFifo(float sample) noexcept
@@ -42,6 +42,106 @@ public:
 		}
 		fifo[fifoIndex++] = sample;
 	}
+
+	
+
+private:
+
+	static constexpr int fftOrder = 11;		//def 11
+	static constexpr int fftSize = 1 << fftOrder;
+	static constexpr int scopeSize = 512;	//def 512
+
+	juce::dsp::FFT forwardFFT;
+	juce::dsp::WindowingFunction<float> window;
+
+	float fifo[fftSize];
+	float fftData[2 * fftSize];
+	float scopeData[scopeSize];
+
+	float fftSmoothed[fftSize / 2];
+
+
+	int fifoIndex = 0;
+	bool nextFFTBlockReady = false;
+
+	AudioState& audioState;
+
+
+	////////////////////////////////////////////////////////
+
+	float frequencyToX(float freq, float width)
+	{
+		constexpr float minFreq = 20.0f;			//def 20.0f
+		constexpr float maxFreq = 20000.0f;			//def 20000.0f
+
+		auto norm = (std::log10(freq) - std::log10(minFreq)) / (std::log10(maxFreq) - std::log10(minFreq));
+
+		return norm * width;
+	}
+
+
+	void drawNextFrameOfSpectrum()
+	{
+		window.multiplyWithWindowingTable(fftData, fftSize);
+
+		forwardFFT.performFrequencyOnlyForwardTransform(fftData);
+
+		auto mindB = (float)audioState.dbMin.load();
+		auto maxdB = 0.0f;
+
+		constexpr float minFreq = 20.0f;
+		float nyquist = (float)audioState.currentSampleRate.load() * 0.5f;			//current sample rate
+
+		for (int i = 0; i < scopeSize; ++i)
+		{
+
+			auto proportion = (float)i / (float)(scopeSize - 1);
+
+			auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
+
+			float fftIndex = frequency / nyquist * (fftSize / 2);
+
+			auto index0 = juce::jlimit(0, fftSize / 2, (int)std::floor(fftIndex));
+
+			auto index1 = juce::jlimit(0, fftSize / 2, index0 + 1);
+
+			auto frac = fftIndex - (float)index0;
+
+			float magnitude = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
+
+			float fftValue = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
+
+			fftSmoothed[i] = fftSmoothed[i] * audioState.fftSmooth.load() + fftValue * (1- audioState.fftSmooth.load());
+
+
+			float level = juce::jmap(
+				juce::jlimit(
+					mindB,
+					maxdB,
+					juce::Decibels::gainToDecibels(fftSmoothed[i] + 1e-6f)
+					- juce::Decibels::gainToDecibels((float)fftSize)),
+				mindB,
+				maxdB,
+				0.0f,
+				1.0f);
+
+			//level *= std::pow(frequency / 1000.0f, -0.3f);		// zum testen eventuell auskommentieren, auto gain smooth shit
+
+			scopeData[i] = scopeData[i] + audioState.displaySmooth.load() * (level - scopeData[i]);
+
+		}
+	}
+
+	void timerCallback() override
+	{
+		if (nextFFTBlockReady)
+		{
+			drawNextFrameOfSpectrum();
+			nextFFTBlockReady = false;
+			repaint();
+		}
+	}
+
 
 	void paint(juce::Graphics& g) override
 	{
@@ -131,101 +231,6 @@ public:
 				juce::Justification::centred);
 		}
 
-	}
-
-private:
-
-	static constexpr int fftOrder = 11;		//def 11
-	static constexpr int fftSize = 1 << fftOrder;
-	static constexpr int scopeSize = 512;	//def 512
-
-	juce::dsp::FFT forwardFFT;
-	juce::dsp::WindowingFunction<float> window;
-
-	float fifo[fftSize];
-	float fftData[2 * fftSize];
-	float scopeData[scopeSize];
-
-	float fftSmoothed[fftSize / 2];
-
-
-	int fifoIndex = 0;
-	bool nextFFTBlockReady = false;
-
-	AudioState& audioState;
-
-
-	////////////////////////////////////////////////////////
-
-	float frequencyToX(float freq, float width)
-	{
-		constexpr float minFreq = 20.0f;			//def 20.0f
-		constexpr float maxFreq = 20000.0f;			//def 20000.0f
-
-		auto norm = (std::log10(freq) - std::log10(minFreq)) / (std::log10(maxFreq) - std::log10(minFreq));
-
-		return norm * width;
-	}
-
-
-	void drawNextFrameOfSpectrum()
-	{
-		window.multiplyWithWindowingTable(fftData, fftSize);
-
-		forwardFFT.performFrequencyOnlyForwardTransform(fftData);
-
-		auto mindB = (float)audioState.dbMin.load();
-		auto maxdB = 0.0f;
-
-		constexpr float minFreq = 20.0f;
-		float nyquist = (float)audioState.currentSampleRate.load() * 0.5f;			//current sample rate
-
-		for (int i = 0; i < scopeSize; ++i)
-		{
-
-			auto proportion = (float)i / (float)(scopeSize - 1);
-
-			auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
-
-			float fftIndex = frequency / nyquist * (fftSize / 2);
-
-			auto index0 = juce::jlimit(0, fftSize / 2, (int)std::floor(fftIndex));
-
-			auto index1 = juce::jlimit(0, fftSize / 2, index0 + 1);
-
-			auto frac = fftIndex - (float)index0;
-
-			float magnitude = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
-
-			float fftValue = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
-
-			fftSmoothed[i] = fftSmoothed[i] * 0.8f + fftValue * 0.2f;
-
-			float level = juce::jmap(
-				juce::jlimit(
-					mindB,
-					maxdB,
-					juce::Decibels::gainToDecibels(fftSmoothed[i] + 1e-6f)
-					- juce::Decibels::gainToDecibels((float)fftSize)),
-				mindB,
-				maxdB,
-				0.0f,
-				1.0f);
-
-			//level *= std::pow(frequency / 1000.0f, -0.3f);		// zum testen eventuell auskommentieren, auto gain smooth shit
-
-			scopeData[i] = scopeData[i] + 0.15f * (level - scopeData[i]);
-		}
-	}
-
-	void timerCallback() override
-	{
-		if (nextFFTBlockReady)
-		{
-			drawNextFrameOfSpectrum();
-			nextFFTBlockReady = false;
-			repaint();
-		}
 	}
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ScopeComponent)

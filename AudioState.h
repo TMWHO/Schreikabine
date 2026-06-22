@@ -17,9 +17,18 @@ struct AudioState
 {
 	std::atomic<double> currentSampleRate{};
 
+
+	// scope comp
+	std::atomic<float> fftSmooth{};
+
+	std::atomic<float> displaySmooth{};
+
 	std::atomic<int> dbMin{ -100 };
 
 
-	//std::atomic<double> freq{ 500.0f };
+	// spec comp
+
+
+
 
 };
