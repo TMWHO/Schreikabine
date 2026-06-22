@@ -4,11 +4,11 @@
 MainComponent::MainComponent()
 {
 	setAudioChannels(2, 0);  // we want a couple of input channels but no outputs
-	setSize(700, 500);
+	setSize(1280, 1024);
 
 
-	addAndMakeVisible(&scope);
-	addAndMakeVisible(&spec);
+	addAndMakeVisible(&ScopeComponent);
+	addAndMakeVisible(&SpecComponent);
 	addAndMakeVisible(&uiComponent);
 }
 
@@ -31,8 +31,8 @@ void MainComponent::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
 
 		for (auto i = 0; i < bufferToFill.numSamples; ++i)
 		{
-			scope.pushNextSampleIntoFifo(channelData[i]);
-			spec.pushNextSampleIntoFifo(channelData[i]);
+			ScopeComponent.pushNextSampleIntoFifo(channelData[i]);
+			SpecComponent.pushNextSampleIntoFifo(channelData[i]);
 		}
 
 	}
@@ -54,7 +54,8 @@ void MainComponent::paint(juce::Graphics& g)
 
 void MainComponent::resized()
 {
-	scope.setBounds(getLocalBounds());
-	spec.setBounds(getLocalBounds());
+
+	ScopeComponent.setBounds(getLocalBounds());
+	SpecComponent.setBounds(getLocalBounds());
 	uiComponent.setBounds(getLocalBounds());
 }

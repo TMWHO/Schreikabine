@@ -1,8 +1,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "Scope.h"
-#include "Spec.h"
+#include "ScopeComponent.h"
+#include "SpecComponent.h"
 #include "AudioState.h"
 #include "UIComponent.h"
 
@@ -32,8 +32,8 @@ private:
 	AudioState audioState;
 	UIComponent uiComponent{ audioState };
 
-	Scope scope;
-	Spec spec;
+	ScopeComponent ScopeComponent;
+	SpecComponent SpecComponent;
 
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
