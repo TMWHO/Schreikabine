@@ -24,7 +24,7 @@ public:
 		juce::zeromem(fftSmoothed, sizeof(fftSmoothed));
 
 		setOpaque(true);
-		startTimerHz(120);
+		startTimerHz(60);
 	}
 
 	void pushNextSampleIntoFifo(float sample) noexcept
@@ -58,7 +58,7 @@ private:
 	float fftData[2 * fftSize];
 	float scopeData[scopeSize];
 
-	float fftSmoothed[fftSize / 2];
+	float fftSmoothed[scopeSize];
 
 
 	int fifoIndex = 0;

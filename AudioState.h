@@ -19,9 +19,9 @@ struct AudioState
 
 
 	// scope comp
-	std::atomic<float> fftSmooth{};
+	std::atomic<float> fftSmooth{ 0.8f };
 
-	std::atomic<float> displaySmooth{};
+	std::atomic<float> displaySmooth{ 0.15f };
 
 	std::atomic<int> dbMin{ -100 };
 
