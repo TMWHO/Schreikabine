@@ -29,9 +29,10 @@ public:
 		startTimerHz(30);
 	}
 
+	// wichter optimisierungscheis!!! mit steigender fftOrder brauchen wir lange bis fifo voll ist, deswegen öffters rendern mit /8 für 14te zB
 	void pushNextSampleIntoFifo(float sample) noexcept
 	{
-		if (fifoIndex == fftSize)
+		if (fifoIndex == fftSize / 8)		
 		{
 			if (!nextFFTBlockReady)
 			{
@@ -47,33 +48,43 @@ public:
 
 	void rebuildFFTLookup()
 	{
-		constexpr float minFreq = 20.0f;
+		float nyquist =
+			audioState.currentSampleRate.load() * 0.5f;
 
-		auto nyquist = (float)audioState.currentSampleRate.load() * 0.5f;
+		constexpr float minFreq = 20.0f;
 
 		for (int i = 0; i < scopeSize; ++i)
 		{
-			auto proportion = (float)i / (float)(scopeSize - 1);
-			auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
-			float fftIndex = frequency / nyquist * (fftSize / 2);
-			int index0 = juce::jlimit(0, fftSize / 2 - 1, (int)fftIndex);
+			float proportion =
+				(float)i / (scopeSize - 1);
 
-			int index1 = index0 + 1;
+			float freq =
+				minFreq *
+				std::pow(nyquist / minFreq, proportion);
+
+			float bin =
+				freq * fftSize
+				/ audioState.currentSampleRate.load();
+
+			int bin0 = (int)bin;
+			int bin1 = juce::jmin(bin0 + 1,
+				fftSize / 2);
 
 			fftLookup[i] =
 			{
-				index0,
-				index1,
-				fftIndex - (float)index0
+				bin0,
+				bin1,
+				bin - bin0
 			};
 		}
 	}
 
 private:
 
-	static constexpr int fftOrder = 11;		//def 11
+	static constexpr int fftOrder = 14;		//def 11
 	static constexpr int fftSize = 1 << fftOrder;
 	static constexpr int scopeSize = 512;	//def 512
+
 
 	juce::dsp::FFT forwardFFT;
 	juce::dsp::WindowingFunction<float> window;
@@ -88,14 +99,14 @@ private:
 	bool nextFFTBlockReady = false;
 
 
+	//struct FFTLookup { int index0;		int index1;		float frac; };
 	struct FFTLookup
 	{
-		int index0;
-		int index1;
-		float frac;
+		int bin0;
+		int bin1;
+		float interp;
 	};
 	std::array<FFTLookup, scopeSize> fftLookup;
-
 
 
 	AudioState& audioState;
@@ -119,7 +130,12 @@ private:
 	{
 		window.multiplyWithWindowingTable(fftData, fftSize);
 
+
+		auto start = juce::Time::getMillisecondCounterHiRes();
 		forwardFFT.performFrequencyOnlyForwardTransform(fftData);
+		auto end = juce::Time::getMillisecondCounterHiRes();
+		DBG("FFT: " << (end - start) << " ms");
+
 
 		auto mindB = (float)audioState.dbMin.load();
 		auto maxdB = 0.0f;
@@ -130,24 +146,12 @@ private:
 		for (int i = 0; i < scopeSize; ++i)
 		{
 
-			auto proportion = (float)i / (float)(scopeSize - 1);
-
-
-			//auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
-			//float fftIndex = frequency / nyquist * (fftSize / 2);
-			//auto index0 = juce::jlimit(0, fftSize / 2, (int)std::floor(fftIndex));
-			//auto index1 = juce::jlimit(0, fftSize / 2, index0 + 1);
-			//auto frac = fftIndex - (float)index0;
-			//float fftValue = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
-
 			const auto& l = fftLookup[i];
 
 			float fftValue =
-				fftData[l.index0]
-				+ l.frac *
-				(fftData[l.index1] - fftData[l.index0]);
-
-
+				fftData[l.bin0]
+				+ l.interp *
+				(fftData[l.bin1] - fftData[l.bin0]);
 
 			fftSmoothed[i] = fftSmoothed[i] * audioState.fftSmooth.load() + fftValue * (1 - audioState.fftSmooth.load());
 
@@ -225,14 +229,14 @@ private:
 
 
 		//soft glow
-		g.setColour(juce::Colours::lime.withAlpha(0.08f));
-		g.strokePath(spectrumPath, juce::PathStrokeType(6.0f));
+		//g.setColour(juce::Colours::lime.withAlpha(0.08f));
+		//g.strokePath(spectrumPath, juce::PathStrokeType(6.0f));
 
-		g.setColour(juce::Colours::lime.withAlpha(0.4f));
-		g.strokePath(spectrumPath, juce::PathStrokeType(3.0f));
+		//g.setColour(juce::Colours::lime.withAlpha(0.4f));
+		//g.strokePath(spectrumPath, juce::PathStrokeType(3.0f));
 
-		g.setColour(juce::Colours::lime.withAlpha(1.0f));
-		g.strokePath(spectrumPath, juce::PathStrokeType(1.2f));
+		//g.setColour(juce::Colours::lime.withAlpha(1.0f));
+		//g.strokePath(spectrumPath, juce::PathStrokeType(1.2f));
 
 		//draw frequ achse
 

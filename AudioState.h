@@ -15,7 +15,7 @@
 
 struct AudioState
 {
-	std::atomic<double> currentSampleRate{};
+	std::atomic<double> currentSampleRate{ 48000 };
 
 
 	// scope comp

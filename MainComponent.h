@@ -1,9 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "AudioState.h"
 #include "ScopeComponent.h"
 #include "SpecComponent.h"
-#include "AudioState.h"
 #include "UIComponent.h"
 #include "AudioGeraete.h"
 

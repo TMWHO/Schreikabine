@@ -26,6 +26,16 @@ void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate
 
 	audioState.currentSampleRate.store(sampleRate);
 
+	/// sollong wir nicht in runtime die sampleRate ändern sollte de scheise halten...
+	//lastSampleRate = sampleRate;
+
+	//if (lastSampleRate != audioState.currentSampleRate.load())
+	//{
+	//	lastSampleRate = audioState.currentSampleRate.load();
+	//	scopeComponent->rebuildFFTLookup();
+	//}
+
+	//filter init
 	juce::dsp::ProcessSpec spec;
 	spec.sampleRate = sampleRate;
 	spec.maximumBlockSize = samplesPerBlockExpected;
