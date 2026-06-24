@@ -23,6 +23,7 @@ MainComponent::~MainComponent()
 //==============================================================================
 void MainComponent::prepareToPlay(int samplesPerBlockExpected, double sampleRate)
 {
+
 	audioState.currentSampleRate.store(sampleRate);
 
 	juce::dsp::ProcessSpec spec;

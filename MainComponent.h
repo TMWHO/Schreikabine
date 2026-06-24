@@ -30,6 +30,8 @@ public:
 
 private:
 
+	double lastSampleRate;
+
 	AudioState audioState;
 
 	std::unique_ptr<UIComponent> uiComponent;

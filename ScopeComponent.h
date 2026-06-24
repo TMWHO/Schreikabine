@@ -23,8 +23,10 @@ public:
 		juce::zeromem(scopeData, sizeof(scopeData));
 		juce::zeromem(fftSmoothed, sizeof(fftSmoothed));
 
+		rebuildFFTLookup();
+
 		setOpaque(true);
-		startTimerHz(60);
+		startTimerHz(30);
 	}
 
 	void pushNextSampleIntoFifo(float sample) noexcept
@@ -41,7 +43,31 @@ public:
 			fifoIndex = 0;
 		}
 		fifo[fifoIndex++] = sample;
-	}	
+	}
+
+	void rebuildFFTLookup()
+	{
+		constexpr float minFreq = 20.0f;
+
+		auto nyquist = (float)audioState.currentSampleRate.load() * 0.5f;
+
+		for (int i = 0; i < scopeSize; ++i)
+		{
+			auto proportion = (float)i / (float)(scopeSize - 1);
+			auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
+			float fftIndex = frequency / nyquist * (fftSize / 2);
+			int index0 = juce::jlimit(0, fftSize / 2 - 1, (int)fftIndex);
+
+			int index1 = index0 + 1;
+
+			fftLookup[i] =
+			{
+				index0,
+				index1,
+				fftIndex - (float)index0
+			};
+		}
+	}
 
 private:
 
@@ -61,10 +87,22 @@ private:
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
 
+
+	struct FFTLookup
+	{
+		int index0;
+		int index1;
+		float frac;
+	};
+	std::array<FFTLookup, scopeSize> fftLookup;
+
+
+
 	AudioState& audioState;
 
 
-	////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////	
+
 
 	float frequencyToX(float freq, float width)
 	{
@@ -94,29 +132,28 @@ private:
 
 			auto proportion = (float)i / (float)(scopeSize - 1);
 
-			auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
 
-			float fftIndex = frequency / nyquist * (fftSize / 2);
+			//auto frequency = minFreq * std::pow(nyquist / minFreq, proportion);
+			//float fftIndex = frequency / nyquist * (fftSize / 2);
+			//auto index0 = juce::jlimit(0, fftSize / 2, (int)std::floor(fftIndex));
+			//auto index1 = juce::jlimit(0, fftSize / 2, index0 + 1);
+			//auto frac = fftIndex - (float)index0;
+			//float fftValue = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
 
-			auto index0 = juce::jlimit(0, fftSize / 2, (int)std::floor(fftIndex));
+			const auto& l = fftLookup[i];
 
-			auto index1 = juce::jlimit(0, fftSize / 2, index0 + 1);
+			float fftValue =
+				fftData[l.index0]
+				+ l.frac *
+				(fftData[l.index1] - fftData[l.index0]);
 
-			auto frac = fftIndex - (float)index0;
 
-			float magnitude = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
 
-			float fftValue = fftData[index0] + frac * (fftData[index1] - fftData[index0]);
-
-			fftSmoothed[i] = fftSmoothed[i] * audioState.fftSmooth.load() + fftValue * (1- audioState.fftSmooth.load());
+			fftSmoothed[i] = fftSmoothed[i] * audioState.fftSmooth.load() + fftValue * (1 - audioState.fftSmooth.load());
 
 
 			float level = juce::jmap(
-				juce::jlimit(
-					mindB,
-					maxdB,
-					juce::Decibels::gainToDecibels(fftSmoothed[i] + 1e-6f)
-					- juce::Decibels::gainToDecibels((float)fftSize)),
+				juce::jlimit(mindB, maxdB, juce::Decibels::gainToDecibels(fftSmoothed[i] + 1e-6f) - juce::Decibels::gainToDecibels((float)fftSize)),
 				mindB,
 				maxdB,
 				0.0f,
@@ -227,6 +264,11 @@ private:
 				15,
 				juce::Justification::centred);
 		}
+
+	}
+
+	void resized() override
+	{
 
 	}
 
