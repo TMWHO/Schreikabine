@@ -5,6 +5,7 @@
 #include "SpecComponent.h"
 #include "AudioState.h"
 #include "UIComponent.h"
+#include "AudioGeraete.h"
 
 //==============================================================================
 /*
@@ -31,12 +32,16 @@ private:
 
 	AudioState audioState;
 
-	UIComponent uiComponent{ audioState };
+	std::unique_ptr<UIComponent> uiComponent;
+	std::unique_ptr<ScopeComponent> scopeComponent;
+	std::unique_ptr<SpecComponent> specComponent;
+	std::unique_ptr<AudioGeraete> audioGeraet;
 
-	ScopeComponent ScopeComponent{ audioState };
 
-	SpecComponent SpecComponent{ audioState };
-
+	juce::dsp::ProcessorDuplicator<
+		juce::dsp::IIR::Filter<float>,
+		juce::dsp::IIR::Coefficients<float>
+	> filter;
 
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

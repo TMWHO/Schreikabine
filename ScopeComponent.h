@@ -41,9 +41,7 @@ public:
 			fifoIndex = 0;
 		}
 		fifo[fifoIndex++] = sample;
-	}
-
-	
+	}	
 
 private:
 
@@ -59,7 +57,6 @@ private:
 	float scopeData[scopeSize];
 
 	float fftSmoothed[scopeSize];
-
 
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
