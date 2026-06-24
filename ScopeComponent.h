@@ -20,8 +20,8 @@ public:
 	{
 		juce::zeromem(fifo, sizeof(fifo));
 		juce::zeromem(fftData, sizeof(fftData));
-		juce::zeromem(scopeData, sizeof(scopeData));
-		juce::zeromem(fftSmoothed, sizeof(fftSmoothed));
+		//juce::zeromem(scopeData, sizeof(scopeData));
+		//juce::zeromem(fftSmoothed, sizeof(fftSmoothed));
 
 		rebuildFFTLookup();
 
@@ -32,7 +32,7 @@ public:
 	// wichter optimisierungscheis!!! mit steigender fftOrder brauchen wir lange bis fifo voll ist, deswegen öffters rendern mit /8 für 14te zB
 	void pushNextSampleIntoFifo(float sample) noexcept
 	{
-		if (fifoIndex == fftSize / 8)		
+		if (fifoIndex == fftSize / 8)
 		{
 			if (!nextFFTBlockReady)
 			{
@@ -53,10 +53,16 @@ public:
 
 		constexpr float minFreq = 20.0f;
 
-		for (int i = 0; i < scopeSize; ++i)
+		const auto numPoints = fftLookup.size();
+
+		if (numPoints == 0)
+			return;
+
+		for (size_t i = 0; i < numPoints; ++i)
 		{
 			float proportion =
-				(float)i / (scopeSize - 1);
+				static_cast<float>(i)
+				/ static_cast<float>(numPoints - 1);
 
 			float freq =
 				minFreq *
@@ -66,15 +72,16 @@ public:
 				freq * fftSize
 				/ audioState.currentSampleRate.load();
 
-			int bin0 = (int)bin;
-			int bin1 = juce::jmin(bin0 + 1,
-				fftSize / 2);
+			int bin0 = static_cast<int>(bin);
+
+			int bin1 =
+				juce::jmin(bin0 + 1, fftSize / 2);
 
 			fftLookup[i] =
 			{
 				bin0,
 				bin1,
-				bin - bin0
+				bin - static_cast<float>(bin0)
 			};
 		}
 	}
@@ -83,17 +90,21 @@ private:
 
 	static constexpr int fftOrder = 14;		//def 11
 	static constexpr int fftSize = 1 << fftOrder;
-	static constexpr int scopeSize = 512;	//def 512
+	//static constexpr int scopeSize = 512;	//def 512	Obsolete da mir die size aus der component getWidth() ableiten
 
 
 	juce::dsp::FFT forwardFFT;
 	juce::dsp::WindowingFunction<float> window;
 
 	float fifo[fftSize];
-	float fftData[2 * fftSize];
-	float scopeData[scopeSize];
 
-	float fftSmoothed[scopeSize];
+	float fftData[2 * fftSize];
+
+	//float scopeData[scopeSize];
+	std::vector<float> scopeData;
+
+	//float fftSmoothed[scopeSize];
+	std::vector<float> fftSmoothed;
 
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
@@ -106,7 +117,7 @@ private:
 		int bin1;
 		float interp;
 	};
-	std::array<FFTLookup, scopeSize> fftLookup;
+	std::vector<FFTLookup> fftLookup;
 
 
 	AudioState& audioState;
@@ -131,10 +142,10 @@ private:
 		window.multiplyWithWindowingTable(fftData, fftSize);
 
 
-		auto start = juce::Time::getMillisecondCounterHiRes();
+		//auto start = juce::Time::getMillisecondCounterHiRes();
 		forwardFFT.performFrequencyOnlyForwardTransform(fftData);
-		auto end = juce::Time::getMillisecondCounterHiRes();
-		DBG("FFT: " << (end - start) << " ms");
+		//auto end = juce::Time::getMillisecondCounterHiRes();
+		//DBG("FFT: " << (end - start) << " ms");
 
 
 		auto mindB = (float)audioState.dbMin.load();
@@ -143,15 +154,13 @@ private:
 		constexpr float minFreq = 20.0f;
 		float nyquist = (float)audioState.currentSampleRate.load() * 0.5f;			//current sample rate
 
-		for (int i = 0; i < scopeSize; ++i)
+		//for (int i = 0; i < scopeSize; ++i)
+		for (size_t i = 0; i < scopeData.size(); ++i)
 		{
 
 			const auto& l = fftLookup[i];
 
-			float fftValue =
-				fftData[l.bin0]
-				+ l.interp *
-				(fftData[l.bin1] - fftData[l.bin0]);
+			float fftValue = fftData[l.bin0] + l.interp * (fftData[l.bin1] - fftData[l.bin0]);
 
 			fftSmoothed[i] = fftSmoothed[i] * audioState.fftSmooth.load() + fftValue * (1 - audioState.fftSmooth.load());
 
@@ -163,7 +172,6 @@ private:
 				0.0f,
 				1.0f);
 
-			//level *= std::pow(frequency / 1000.0f, -0.3f);		// zum testen eventuell auskommentieren, auto gain smooth shit
 
 			scopeData[i] = scopeData[i] + audioState.displaySmooth.load() * (level - scopeData[i]);
 
@@ -200,12 +208,12 @@ private:
 
 		spectrumPath.startNewSubPath(0.0f, bounds.getBottom());
 
-		for (int i = 1; i < scopeSize; ++i)
+		for (size_t i = 1; i < scopeData.size(); ++i)
 		{
 			auto x = juce::jmap<float>(
-				(float)i,
+				static_cast<float>(i),
 				0.0f,
-				(float)scopeSize - 1,
+				static_cast<float>(scopeData.size() - 1),
 				0.0f,
 				bounds.getWidth());
 
@@ -273,6 +281,17 @@ private:
 
 	void resized() override
 	{
+		//auto displayPoints =
+		//	juce::nextPowerOfTwo(getWidth());
+
+
+		auto newSize = std::max(1, getWidth());
+
+		scopeData.resize(newSize);
+		fftSmoothed.resize(newSize);
+		fftLookup.resize(newSize);
+
+		rebuildFFTLookup();
 
 	}
 
