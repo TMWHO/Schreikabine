@@ -141,7 +141,6 @@ private:
 	{
 		window.multiplyWithWindowingTable(fftData, fftSize);
 
-
 		//auto start = juce::Time::getMillisecondCounterHiRes();
 		forwardFFT.performFrequencyOnlyForwardTransform(fftData);
 		//auto end = juce::Time::getMillisecondCounterHiRes();
@@ -281,9 +280,6 @@ private:
 
 	void resized() override
 	{
-		//auto displayPoints =
-		//	juce::nextPowerOfTwo(getWidth());
-
 
 		auto newSize = std::max(1, getWidth());
 
@@ -292,6 +288,7 @@ private:
 		fftLookup.resize(newSize);
 
 		rebuildFFTLookup();
+
 
 	}
 
