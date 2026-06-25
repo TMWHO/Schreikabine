@@ -18,11 +18,8 @@ class SpecComponent : public juce::Component, private juce::Timer
 {
 public:
 
-	SpecComponent(AudioState& state)
-		: audioState(state),
-		forwardFFT(fftOrder),
-		window(fftSize, juce::dsp::WindowingFunction<float>::hann),
-		spectrogramImage(juce::Image::RGB, 512, 512, true)
+	SpecComponent(AudioState& state) 
+		: audioState(state), forwardFFT(fftOrder), window(fftSize, juce::dsp::WindowingFunction<float>::hann), spectrogramImage(juce::Image::RGB, 512, 512, true)
 	{
 		setSize(640, 512);
 		startTimerHz(60);
@@ -39,10 +36,8 @@ public:
 				std::copy(fifo.begin(), fifo.end(), fftData.begin());
 				nextFFTBlockReady = true;
 			}
-
 			fifoIndex = 0;
 		}
-
 		fifo[(size_t)fifoIndex++] = sample;
 	}
 
@@ -51,21 +46,13 @@ public:
 	{
 		g.fillAll(juce::Colours::black);
 
-		g.setImageResamplingQuality(
-			juce::Graphics::highResamplingQuality);
-
+		g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
 
 		constexpr int axisWidth = 55;
 
-		auto specArea =
-			getLocalBounds()
-			.withTrimmedRight(axisWidth);
+		auto specArea = getLocalBounds().withTrimmedRight(axisWidth);
 
-
-		g.drawImage(
-			spectrogramImage,
-			specArea.toFloat());
-
+		g.drawImage(spectrogramImage, specArea.toFloat());
 
 		drawFrequencyAxis(g, specArea);
 	}
@@ -75,13 +62,7 @@ public:
 	void resized() override
 	{
 		constexpr int axisWidth = 55;
-
-		spectrogramImage =
-			juce::Image(
-				juce::Image::RGB,
-				juce::jmax(1, getWidth() - axisWidth),
-				juce::jmax(1, getHeight()),
-				true);
+		spectrogramImage = juce::Image(juce::Image::RGB, juce::jmax(1, getWidth() - axisWidth), juce::jmax(1, getHeight()), true);
 	}
 
 
@@ -101,17 +82,13 @@ private:
 		juce::dsp::WindowingFunction<float>::hann
 	};
 
-
 	juce::Image spectrogramImage;
-
 
 	std::array<float, fftSize> fifo{};
 	std::array<float, fftSize * 2> fftData{};
 
-
 	int fifoIndex = 0;
 	bool nextFFTBlockReady = false;
-
 
 	AudioState& audioState;
 
@@ -130,7 +107,6 @@ private:
 		window.multiplyWithWindowingTable(fftData.data(), fftSize);
 
 		forwardFFT.performFrequencyOnlyForwardTransform(fftData.data());
-
 
 		juce::Image::BitmapData bitmap
 		{
@@ -188,12 +164,7 @@ private:
 	{
 		x = juce::jlimit(0.0f, 1.0f, x);
 
-		struct Stop
-		{
-			float pos;
-			juce::Colour colour;
-		};
-
+		struct Stop { float pos;	juce::Colour colour; };
 		static const Stop stops[] =
 		{
 			{ 0.00f, juce::Colour(0xff000000) }, // schwarz
@@ -215,16 +186,6 @@ private:
 		}
 		return juce::Colours::white;
 	}
-
-
-
-	float frequencyToY(float freq, float height)
-	{
-		auto norm = (std::log10(freq) - std::log10(minFreq)) / (std::log10(maxFreq) - std::log10(minFreq));
-		return height * (1.0f - norm);
-	}
-
-
 
 	void drawFrequencyAxis(juce::Graphics& g, juce::Rectangle<int> area)
 	{
@@ -255,15 +216,18 @@ private:
 		}
 	}
 
+	float frequencyToY(float freq, float height)
+	{
+		auto norm = (std::log10(freq) - std::log10(minFreq)) / (std::log10(maxFreq) - std::log10(minFreq));
+		return height * (1.0f - norm);
+	}
 
 	void timerCallback() override
 	{
 		if (nextFFTBlockReady)
 		{
 			drawNextLineOfSpectrogram();
-
 			nextFFTBlockReady = false;
-
 			repaint();
 		}
 	}
