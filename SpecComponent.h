@@ -158,37 +158,23 @@ private:
 			int b1 = juce::jmin(b0 + 1, fftSize / 2 - 1);
 
 			float frac = binFloat - (float)b0;
-			
-			float magnitude = (fftData[b0] + frac * (fftData[b1] - fftData[b0])) / 1.0f;	// def: 128.0f  teilnormierung für hell dunkel 
+
+			float magnitude = (fftData[b0] + frac * (fftData[b1] - fftData[b0])) / 8.0f;	// def: 128.0f  teilnormierung für hell dunkel 
 
 			float db = juce::Decibels::gainToDecibels(magnitude + 1e-9f);
 
-			//auto visibleDb = -30.0f;
-			//auto floorDb = -80.0f;
-			auto visibleDb = (float)audioState.spec_dBVisible.load();
-			auto floorDb = (float)audioState.spec_dBFloor.load();
+			auto visibleDb = -12.0f;
+			auto floorDb = -36.0f;
+			//auto visibleDb = (float)audioState.spec_dBVisible.load();
+			//auto floorDb = (float)audioState.spec_dBFloor.load();
 
-
-			float level =
-				juce::jmap(
-					db,
-					floorDb,
-					0.0f,
-					0.0f,
-					1.0f);
+			float level = juce::jmap(db, floorDb, 0.0f, 0.0f, 1.0f);
 
 			level = juce::jlimit(0.0f, 1.0f, level);
 
 			if (db < visibleDb)
 			{
-				float fade =
-					juce::jmap(
-						db,
-						floorDb,
-						visibleDb,
-						0.0f,
-						1.0f);
-
+				float fade = juce::jmap(db, floorDb, visibleDb, 0.0f, 1.0f);
 				level *= fade;
 			}
 
@@ -222,16 +208,11 @@ private:
 		{
 			if (x <= stops[i + 1].pos)
 			{
-				float t =
-					(x - stops[i].pos)
-					/ (stops[i + 1].pos - stops[i].pos);
+				float t = (x - stops[i].pos) / (stops[i + 1].pos - stops[i].pos);
 
-				return stops[i].colour.interpolatedWith(
-					stops[i + 1].colour,
-					t);
+				return stops[i].colour.interpolatedWith(stops[i + 1].colour, t);
 			}
 		}
-
 		return juce::Colours::white;
 	}
 
@@ -247,9 +228,7 @@ private:
 
 	void drawFrequencyAxis(juce::Graphics& g, juce::Rectangle<int> area)
 	{
-
-		g.setColour(juce::Colours::grey.withAlpha(0.35f));
-
+		g.setColour(juce::Colours::grey.withAlpha(0.5f));
 
 		std::array<float, 8> freqs =
 		{
@@ -263,31 +242,18 @@ private:
 			10000
 		};
 
-
-
 		for (auto freq : freqs)
 		{
-
 			auto y = frequencyToY(freq, (float)area.getHeight());
-
-
 			g.drawHorizontalLine((int)y, 0, area.getRight());
-
-
-
 			juce::String label;
-
 
 			if (freq >= 1000)	label = juce::String(freq / 1000, 0) + "k";
 			else				label = juce::String((int)freq);
 
-
-
 			g.drawText(label, area.getRight() + 5, (int)y - 8, 45, 16, juce::Justification::centredLeft);
 		}
 	}
-
-
 
 
 	void timerCallback() override
@@ -301,12 +267,6 @@ private:
 			repaint();
 		}
 	}
-
-
-
-
-
-
 
 
 
