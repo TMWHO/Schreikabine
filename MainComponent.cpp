@@ -86,22 +86,18 @@ void MainComponent::paint(juce::Graphics& g)
 {
 	g.fillAll(juce::Colours::black);
 
-
 }
 
 void MainComponent::resized()
 {
 
-	juce::Rectangle<int> boundsScope(0, 0, getWidth() / 2, getHeight() / 2);
+	juce::Rectangle<int> boundsUi(0, 0, getWidth() / 2, getHeight() / 2);
+	juce::Rectangle<int> boundsScope(getWidth() / 2, 0, getWidth() / 2, getHeight() / 2);
 	juce::Rectangle<int> boundsSpec(0, getHeight() / 2, getWidth() / 2, getHeight() / 2);
-	juce::Rectangle<int> boundsUi(getWidth() / 2, 0, getWidth() / 2, getHeight() / 2);
 	juce::Rectangle<int> boundsGeraet(getWidth() / 2, getHeight() / 2, getWidth() / 2, getHeight() / 2);
-
-
 
 	uiComponent->setBounds(boundsUi);
 	scopeComponent->setBounds(boundsScope);
 	specComponent->setBounds(boundsSpec);
-
 	audioGeraet->setBounds(boundsGeraet);
 }

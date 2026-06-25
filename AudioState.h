@@ -23,10 +23,14 @@ struct AudioState
 
 	std::atomic<float> displaySmooth{ 0.15f };
 
-	std::atomic<int> dbMin{ -100 };
+	std::atomic<float> dbMin{ -100 };		//sollte int sein...
 
 
 	// spec comp
+
+
+	std::atomic<int> spec_dBVisible{ -65 };
+	std::atomic<int> spec_dBFloor{ -80 };
 
 
 
