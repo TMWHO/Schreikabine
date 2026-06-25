@@ -76,6 +76,53 @@ public:
 		lbl_DisplaySmooth->setJustificationType(juce::Justification::centred);
 		lbl_DisplaySmooth->attachToComponent(sld_DisplaySmooth.get(), false);
 
+
+		///////////////////////////////////////////
+
+		sld_dBVisible.reset(new juce::Slider("slider_dBVisible"));
+		addAndMakeVisible(sld_dBVisible.get());
+		sld_dBVisible->setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
+		sld_dBVisible->setRange(-65, 0, 1);
+		sld_dBVisible->setValue(-65);
+		sld_dBVisible->setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxBelow, false, elementWidth, labelHeight);
+		sld_dBVisible->onValueChange = [this]
+			{
+				auto maxFloor = sld_dBVisible->getValue() - 1;
+				sld_dBFloor->setRange(-80, maxFloor, 1);
+				if (sld_dBFloor->getValue() > maxFloor)			sld_dBFloor->setValue(maxFloor, juce::dontSendNotification);
+				audioState.spec_dBVisible.store(static_cast<int>(sld_dBVisible->getValue()));
+
+			};
+		sld_dBVisible->setBounds(elementWidth * 0, (labelHeight * 2) + (elementHeight * 2), elementWidth, elementHeight);
+		sld_dBVisible->setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lime);
+
+		lbl_dBVisible.reset(new juce::Label("label_dBVisible"));
+		addAndMakeVisible(lbl_dBVisible.get());
+		lbl_dBVisible->setText("dB Visible", juce::NotificationType::dontSendNotification);
+		lbl_dBVisible->setColour(juce::Label::outlineColourId, juce::Colours::lime);
+		lbl_dBVisible->setJustificationType(juce::Justification::centred);
+		lbl_dBVisible->attachToComponent(sld_dBVisible.get(), false);
+
+
+		///////////////////////////////////////////
+
+		sld_dBFloor.reset(new juce::Slider("slider_dBFloor"));
+		addAndMakeVisible(sld_dBFloor.get());
+		sld_dBFloor->setSliderStyle(juce::Slider::SliderStyle::RotaryVerticalDrag);
+		sld_dBFloor->setRange(-80, sld_dBVisible->getValue() - 1, 1);
+		sld_dBFloor->setValue(-80);
+		sld_dBFloor->setTextBoxStyle(juce::Slider::TextEntryBoxPosition::TextBoxBelow, false, elementWidth, labelHeight);
+		sld_dBFloor->onValueChange = [this] {audioState.spec_dBFloor.store(static_cast<int>(sld_dBFloor->getValue()));};
+		sld_dBFloor->setBounds(elementWidth * 1, (labelHeight * 2) + (elementHeight * 2), elementWidth, elementHeight);
+		sld_dBFloor->setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lime);
+
+		lbl_dBFloor.reset(new juce::Label("label_dBFloor"));
+		addAndMakeVisible(lbl_dBFloor.get());
+		lbl_dBFloor->setText("dB Floor", juce::NotificationType::dontSendNotification);
+		lbl_dBFloor->setColour(juce::Label::outlineColourId, juce::Colours::lime);
+		lbl_dBFloor->setJustificationType(juce::Justification::centred);
+		lbl_dBFloor->attachToComponent(sld_dBFloor.get(), false);
+
 	}
 
 	~UIComponent()
@@ -83,10 +130,13 @@ public:
 		sld_dbMin, lbl_dbMin = nullptr;
 		sld_FFTSmooth, lbl_FFTSmooth = nullptr;
 		sld_DisplaySmooth, lbl_DisplaySmooth = nullptr;
+		sld_dBVisible, lbl_dBVisible = nullptr;
+		sld_dBFloor, lbl_dBFloor = nullptr;
 	}
 
 	void resize() {}
 
+	//scope
 	std::unique_ptr<juce::Slider> sld_dbMin;
 	std::unique_ptr<juce::Label> lbl_dbMin;
 
@@ -95,6 +145,13 @@ public:
 
 	std::unique_ptr<juce::Slider> sld_DisplaySmooth;
 	std::unique_ptr<juce::Label> lbl_DisplaySmooth;
+
+	//spec
+	std::unique_ptr<juce::Slider> sld_dBVisible;
+	std::unique_ptr<juce::Label> lbl_dBVisible;
+
+	std::unique_ptr<juce::Slider> sld_dBFloor;
+	std::unique_ptr<juce::Label> lbl_dBFloor;
 
 
 private:

@@ -163,10 +163,10 @@ private:
 
 			float db = juce::Decibels::gainToDecibels(magnitude + 1e-9f);
 
+			//auto visibleDb = -30.0f;
 			//auto floorDb = -80.0f;
-			//auto visibleDb = -65.0f;
-			auto floorDb = (float)audioState.spec_dBFloor.load();
 			auto visibleDb = (float)audioState.spec_dBVisible.load();
+			auto floorDb = (float)audioState.spec_dBFloor.load();
 
 
 			float level =
